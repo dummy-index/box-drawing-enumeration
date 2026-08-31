@@ -1,0 +1,126 @@
+# CP437（Code Page 437）罫線素片 研究ノート
+
+## 概要
+
+CP437（DOS ラテン US / OEM-US）は IBM PC 時代の標準文字コードです。
+40 個のボックス描画文字を含みます。
+
+参考：[Unicode CP437 マッピング](https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT)
+
+## CP437 ボックス描画文字（40個）
+
+**Code範囲**: 0xB3 ～ 0xDA（40 文字）
+
+### 16進コード一覧
+
+#### 単一線（LIGHT / Type 1）
+- 0xB3: U+2502 BOX DRAWINGS LIGHT VERTICAL
+- 0xBF: U+2510 BOX DRAWINGS LIGHT DOWN AND LEFT
+- 0xC0: U+2514 BOX DRAWINGS LIGHT UP AND RIGHT
+- 0xC1: U+2534 BOX DRAWINGS LIGHT UP AND HORIZONTAL
+- 0xC2: U+252C BOX DRAWINGS LIGHT DOWN AND HORIZONTAL
+- 0xC3: U+251C BOX DRAWINGS LIGHT VERTICAL AND RIGHT
+- 0xC4: U+2500 BOX DRAWINGS LIGHT HORIZONTAL
+- 0xC5: U+253C BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
+- 0xD9: U+2518 BOX DRAWINGS LIGHT UP AND LEFT
+- 0xDA: U+250C BOX DRAWINGS LIGHT DOWN AND RIGHT
+
+#### 二重線（DOUBLE / Type 2）
+- 0xBA: U+2551 BOX DRAWINGS DOUBLE VERTICAL
+- 0xBB: U+2557 BOX DRAWINGS DOUBLE DOWN AND LEFT
+- 0xBC: U+255D BOX DRAWINGS DOUBLE UP AND LEFT
+- 0xC8: U+255A BOX DRAWINGS DOUBLE UP AND RIGHT
+- 0xC9: U+2554 BOX DRAWINGS DOUBLE DOWN AND RIGHT
+- 0xCA: U+2569 BOX DRAWINGS DOUBLE UP AND HORIZONTAL
+- 0xCB: U+2566 BOX DRAWINGS DOUBLE DOWN AND HORIZONTAL
+- 0xCC: U+2560 BOX DRAWINGS DOUBLE VERTICAL AND RIGHT
+- 0xCD: U+2550 BOX DRAWINGS DOUBLE HORIZONTAL
+- 0xCE: U+256C BOX DRAWINGS DOUBLE VERTICAL AND HORIZONTAL
+
+#### 混合（Mixed single/double）
+混合タイプ（単一線と二重線の組み合わせ）：20 文字
+
+- 0xB4: U+2524 BOX DRAWINGS LIGHT VERTICAL AND LEFT
+- 0xB5: U+2561 VERTICAL SINGLE AND LEFT DOUBLE
+- 0xB6: U+2562 VERTICAL DOUBLE AND LEFT SINGLE
+- 0xB7: U+2556 DOWN DOUBLE AND LEFT SINGLE
+- 0xB8: U+2555 DOWN SINGLE AND LEFT DOUBLE
+- 0xB9: U+2563 DOUBLE VERTICAL AND LEFT
+- 0xBD: U+255C UP DOUBLE AND LEFT SINGLE
+- 0xBE: U+255B UP SINGLE AND LEFT DOUBLE
+- 0xC6: U+255E VERTICAL SINGLE AND RIGHT DOUBLE
+- 0xC7: U+255F VERTICAL DOUBLE AND RIGHT SINGLE
+- 0xCF: U+2567 UP SINGLE AND HORIZONTAL DOUBLE
+- 0xD0: U+2568 UP DOUBLE AND HORIZONTAL SINGLE
+- 0xD1: U+2564 DOWN SINGLE AND HORIZONTAL DOUBLE
+- 0xD2: U+2565 DOWN DOUBLE AND HORIZONTAL SINGLE
+- 0xD3: U+2559 UP DOUBLE AND RIGHT SINGLE
+- 0xD4: U+2558 UP SINGLE AND RIGHT DOUBLE
+- 0xD5: U+2552 DOWN SINGLE AND RIGHT DOUBLE
+- 0xD6: U+2553 DOWN DOUBLE AND RIGHT SINGLE
+- 0xD7: U+256B VERTICAL DOUBLE AND HORIZONTAL SINGLE
+- 0xD8: U+256A VERTICAL SINGLE AND HORIZONTAL DOUBLE
+
+## 設計上の違い：JIS X 0208 vs CP437
+
+| 項目 | JIS X 0208 | CP437 |
+|------|-----------|-------|
+| タイル数 | 32 | 40 |
+| 単一線型 | LIGHT（細） | LIGHT（細） |
+| 二重線型 | HEAVY（太） | DOUBLE（二重） |
+| 混合型 | 無し | 20 種類 |
+| 推奨盤面 | 8×4 | 10×4 |
+| 推奨盤面サイズ | 32 | 40 |
+
+## 実装計画
+
+### Phase 2a: CP437 10×4 全探索
+
+1. **cp437.json 作成**
+   - JIS32.json と同じ形式
+   - sides 定義： [N, E, S, W]
+   - Type: 1 = LIGHT, 2 = DOUBLE
+   - Mixed タイプはどちらか一方の型で代表（例：上部が DOUBLE なら type=2）
+
+2. **探索実行**
+   ```bash
+   python explore.py --rows 4 --cols 10 --tiles cp437.json --max 0
+   ```
+
+3. **結果分類**
+   - 単結合解
+   - 非単結合解
+
+## 技術的注意
+
+### CP437 特有の問題
+
+- **混合型の処理**: 異なる型の側が隣り合わないため「接続成立」の定義が明確
+  - 例：LIGHT で DOUBLE に接続することはできない
+  
+- **盤面サイズ**: 40 字で 10×4 がちょうど収まる
+  - 9×4 + 4 blank の場合、blank を type 0 として扱う
+
+### JIS との共通性
+
+- D4 回転・反射対称性は同じ
+- タイル固定原則は同じ
+- 型ラベル置換: JIS は 1↔2、CP437 も 1↔2
+
+## 参考資料
+
+- Wikipedia: Box-drawing character
+  https://en.wikipedia.org/wiki/Box-drawing_character
+
+- Wikipedia: Code page 437
+  https://en.wikipedia.org/wiki/Code_page_437
+
+- Unicode Mapping Official
+  https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT
+
+## 次のステップ
+
+1. cp437.json を 40 タイル定義で作成
+2. 10×4 盤面で全探索実行
+3. 結果を gallery で可視化
+4. JIS の 9×4, 10×4 も同時進行

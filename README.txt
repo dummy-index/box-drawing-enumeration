@@ -11,7 +11,7 @@ JIS X 0208 と Code Page 437 の罫線素片を盤面に過不足なく結合す
 - **単結合解**: 25 個（接続エッジをたどると全タイルに到達可能）
 - **非単結合解**: 12 個（2つ以上の分離した部分を含む）
 
-詳細は `gallery.html` および `solutions_summary.txt` を参照。
+詳細は `jis_8x4_results/gallery.html` および `jis_8x4_results/solutions_summary.txt` を参照。
 
 ## 重要な設計原則
 

@@ -46,9 +46,9 @@ JIS X 0208 の罫線素片 32 字を盤面 8×4 に一回ずつ置き、すべ�
 - 実行時間: 数分程度
 
 **出力**
-- `solution_1.json` ～ `solution_37.json`: 各解の盤面（JSON 形式、32 要素の配列）
-- `gallery.html`: インタラクティブ HTML ギャラリー（単結合/非単結合で区分）
-- `solutions_summary.txt`: 全解の ASCII アート表記
+- `jis_8x4_results/solution_1.json` ～ `solution_37.json`: 各解の盤面（JSON 形式、32 要素の配列）
+- `jis_8x4_results/gallery.html`: インタラクティブ HTML ギャラリー（単結合/非単結合で区分）
+- `jis_8x4_results/solutions_summary.txt`: 全解の ASCII アート表記
 
 ## 重要な設計決定
 
@@ -100,13 +100,23 @@ BFS により「接続成立」エッジだけを使って到達可能な全タ�
   - 単結合解を先に、非単結合解を後に列挙
 
 ### 出力
-- `solution_1.json` ～ `solution_37.json` - 代表解（盤面データ）
-- `gallery.html` - インタラクティブなHTMLギャラリー
-- `solutions_summary.txt` - 全解の ASCII アート一覧
+- `jis_8x4_results/` ディレクトリ - Phase 1 の全出力が隔離された状態で保存
+  - `solution_1.json` ～ `solution_37.json` - 代表解（盤面データ）
+  - `gallery.html` - インタラクティブなHTMLギャラリー
+  - `solutions_summary.txt` - 全解の ASCII アート一覧
 
 ## 今後の拡張予定
 
 ### Phase 2a: Code Page 437（40 タイル）
+
+**研究成果**  
+詳細は `CP437_RESEARCH.md` を参照。
+- 公式 Unicode マッピング確認済み: https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT
+- ボックス描画文字 40 個（0xB3～0xDA）
+- 構成：
+  - 一重線（LIGHT、型値 1）: 10 個
+  - 二重線（DOUBLE、型値 2）: 10 個
+  - 混合型（single/double 組み合わせ）: 20 個
 
 1. **タイル定義**: cp437.json を作成
    - 一重線タイプ（型値 1）と二重線タイプ（型値 2）の 40 字
