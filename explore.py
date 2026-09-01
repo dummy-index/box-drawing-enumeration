@@ -169,6 +169,14 @@ class Solver:
             s = tuple(t.sides)
             if s not in self.sides_to_id:
                 self.sides_to_id[s] = t.id
+        # Group tiles by sides; multiple tiles with same sides → try in order, break after placing one
+        self.sides_to_tile_group = {}
+        for t in tiles:
+            s = tuple(t.sides)
+            if s not in self.sides_to_tile_group:
+                self.sides_to_tile_group[s] = []
+            self.sides_to_tile_group[s].append(t)
+        
         self.used = {t.id: 0 for t in tiles}
         self.board = [[None for _ in range(cols)] for _ in range(rows)]
         self.unique_sigs = set()
@@ -218,22 +226,40 @@ class Solver:
             return False
         r = idx // self.cols
         c = idx % self.cols
-        # Try each unused tile (no rotation: tile is fixed)
+        
+        # For each distinct sides value, try tiles in order
+        # If a sides value has multiple tile IDs, use only the first unused one, then break
+        tried_sides = set()
         for t in self.tiles:
+            sides = tuple(t.sides)
+            
+            # If we've already tried this sides value, skip
+            if sides in tried_sides:
+                continue
+            
+            # If this tile is used, skip
             if self.used[t.id]:
                 continue
-            sides = tuple(t.sides)
+            
+            tried_sides.add(sides)
+            
             if not self.neighbors_ok(r, c, sides):
                 continue
+            
             # place
             self.board[r][c] = (t.id, sides)
-            self.used[t.id] = 1
+            self.used[t.id] += 1
             stop = self.place_next(idx+1, max_solutions)
             # unplace
-            self.used[t.id] = 0
+            self.used[t.id] -= 1
             self.board[r][c] = None
+            
             if stop:
                 return True
+            
+            # If this sides value has multiple tile IDs (e.g., BLANK1, BLANK2),
+            # don't try other tile IDs with the same sides
+        
         return False
 
     def canonical_signature_checked(self):
