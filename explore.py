@@ -265,6 +265,7 @@ class Solver:
     def canonical_signature_checked(self):
         """Apply D4 transforms to board and check each result can be represented with available tiles.
         Only return signature if valid representation exists; else return None.
+        Also apply minimal bounding box to remove translational variants.
         """
         transforms = ['identity','rot90','rot180','rot270','fliph','flipv','diag','adiag']
         valid_sigs = []
@@ -282,16 +283,55 @@ class Solver:
                     if not valid:
                         break
                 if valid:
-                    sig = self.board_signature_from_board(tb, r, c)
+                    # Compute minimal bounding box
+                    tb_min, r_min, c_min = self.minimal_bounding_box(tb, r, c)
+                    sig = self.board_signature_from_board(tb_min, r_min, c_min)
                     valid_sigs.append(sig)
                     # swapped labels: 1<->2
-                    swapped = swap_types_on_board(tb, r, c, {1:2, 2:1})
-                    valid_sigs.append(self.board_signature_from_board(swapped, r, c))
+                    swapped = swap_types_on_board(tb_min, r_min, c_min, {1:2, 2:1})
+                    valid_sigs.append(self.board_signature_from_board(swapped, r_min, c_min))
             except Exception:
                 continue
         if not valid_sigs:
             return None
         return min(valid_sigs)
+    
+    def minimal_bounding_box(self, board, rows, cols):
+        """Extract minimal bounding box by removing empty (BLANK-only) rows/cols from edges.
+        Returns (trimmed_board, new_rows, new_cols)
+        """
+        # Find rows with at least one non-BLANK
+        min_row = rows
+        max_row = -1
+        for r in range(rows):
+            for c in range(cols):
+                tid, sides = board[r][c]
+                if tid != 'BLANK1' and tid != 'BLANK2' and tid != 'BLANK3' and tid != 'BLANK4' and tid != 'BLANK5' and tid != 'BLANK6' and tid != 'BLANK7' and tid != 'BLANK8':
+                    min_row = min(min_row, r)
+                    max_row = max(max_row, r)
+                    break
+        
+        # Find columns with at least one non-BLANK
+        min_col = cols
+        max_col = -1
+        for c in range(cols):
+            for r in range(rows):
+                tid, sides = board[r][c]
+                if tid != 'BLANK1' and tid != 'BLANK2' and tid != 'BLANK3' and tid != 'BLANK4' and tid != 'BLANK5' and tid != 'BLANK6' and tid != 'BLANK7' and tid != 'BLANK8':
+                    min_col = min(min_col, c)
+                    max_col = max(max_col, c)
+                    break
+        
+        # If all BLANKs, return a single BLANK cell
+        if min_row > max_row or min_col > max_col:
+            blank_tile = (board[0][0])
+            return [[blank_tile]], 1, 1
+        
+        # Extract bounding box
+        new_rows = max_row - min_row + 1
+        new_cols = max_col - min_col + 1
+        trimmed = [[board[min_row + r][min_col + c] for c in range(new_cols)] for r in range(new_rows)]
+        return trimmed, new_rows, new_cols
 
     def board_signature_from_board(self, board, rows, cols):
         """Create signature from board using sides_to_id mapping."""
