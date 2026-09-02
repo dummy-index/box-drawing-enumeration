@@ -54,35 +54,35 @@ def generate_gallery_html():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JIS X 0208 罫線素片配置ギャラリー</title>
+    <title>JIS X 0208 罫線素片 10×4 盤面ギャラリー</title>
     <style>
         body {{ font-family: 'Courier New', monospace; margin: 20px; background-color: #f5f5f5; }}
         h1 {{ text-align: center; color: #333; }}
         .info {{ text-align: center; color: #666; margin-bottom: 10px; }}
-        .gallery {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin: 20px 0; }}
+        .gallery {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin: 20px 0; }}
         .solution-box {{ background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
         .solution-title {{ font-weight: bold; margin-bottom: 8px; color: #333; }}
-        .tile-grid {{ display: inline-block; border-collapse: collapse; border: 2px solid #333; font-size: 18px; line-height: 1.2; }}
-        .tile-grid td {{ width: 30px; height: 30px; text-align: center; vertical-align: middle; border: 1px solid #ccc; padding: 0; }}
+        .tile-grid {{ display: inline-block; border-collapse: collapse; border: 2px solid #333; font-size: 16px; line-height: 1.0; }}
+        .tile-grid td {{ width: 25px; height: 25px; text-align: center; vertical-align: middle; border: 1px solid #ddd; padding: 0; }}
         .tile-thin {{ color: #000; }}
         .tile-heavy {{ color: #000; font-weight:700; }}
+        .tile-blank {{ background-color: #f0f0f0; color: #ccc; }}
         .group-title {{ margin-top: 20px; font-weight: bold; }}
     </style>
 </head>
 <body>
-    <h1>JIS X 0208 罫線素片 32 字 × 8×4 盤面</h1>
+    <h1>JIS X 0208 罫線素片 32 字 × 10×4 盤面（8 空白セル）</h1>
     <div class="info">
         <p>単結合な解（上）→ 単結合でない解（下）</p>
         <p>合計 {len(ordered)} 解（単結合: {len(connected)}, 非単結合: {len(not_connected)}）</p>
+        <p>最小バウンディングボックスで平行移動重複を除去</p>
     </div>
     <div class="gallery">
 """
 
-    # render ordered
     for i, path in enumerate(ordered, 1):
         data = json.load(open(path,'r',encoding='utf-8'))
         rows = data['rows']; cols = data['cols']; board = data['board']
-        # styling map
         type_map = { board[r][c]['id']: max(board[r][c]['sides']) for r in range(rows) for c in range(cols)}
         table_html = '<table class="tile-grid">\n'
         for r in range(rows):
@@ -96,12 +96,13 @@ def generate_gallery_html():
                         ch = chr(int(tid[1:],16))
                     except:
                         ch = '?'
+                elif tid.startswith('BLANK'):
+                    ch = ' '
                 tile_type = type_map.get(tid,0)
-                cls = 'tile-heavy' if tile_type==2 else 'tile-thin'
-                table_html += f'    <td class="{cls}">{ch}</td>\n'
+                tile_class = 'tile-blank' if tid.startswith('BLANK') else ('tile-heavy' if tile_type==2 else 'tile-thin')
+                table_html += f'    <td class="{tile_class}">{ch}</td>\n'
             table_html += '  </tr>\n'
         table_html += '</table>'
-        # determine group label
         group = '単結合' if path in connected else '非単結合'
         html += f"    <div class=\"solution-box\">\n        <div class=\"solution-title\">解 #{i} ({group})</div>\n        {table_html}\n    </div>\n"
 
@@ -154,8 +155,8 @@ def generate_text_summary():
     ordered = connected + not_connected
 
     with open('solutions_summary.txt','w',encoding='utf-8') as f:
-        f.write("JIS X 0208 罫線素片 32字 × 8×4 盤面\n")
-        f.write("単結合配置の全代表解（回転・反転・色置換を同一視）\n")
+        f.write("JIS X 0208 罫線素片 32字 × 10×4 盤面（8空白セル）\n")
+        f.write("単結合配置の全代表解（回転・反射・色置換を同一視、平行移動重複を除去）\n")
         f.write("="*60 + "\n\n")
         f.write(f"全解数: {len(ordered)} (単結合: {len(connected)}, 非単結合: {len(not_connected)})\n\n")
         for idx, path in enumerate(ordered,1):
@@ -170,6 +171,8 @@ def generate_text_summary():
                     if tid.startswith('U'):
                         try: ch = chr(int(tid[1:],16))
                         except: ch='?'
+                    elif tid.startswith('BLANK'):
+                        ch=' '
                     f.write(ch)
                 f.write('\n')
             f.write('\n')
