@@ -8,35 +8,56 @@ def generate_gallery_html():
 
     def is_single_connected(board, rows, cols):
         # build adjacency based on 接続成立: non-zero and equal on touching sides
+        # Count only non-BLANK tiles
         n_cells = rows * cols
+        is_blank = [[board[r][c]['id'].startswith('BLANK') for c in range(cols)] for r in range(rows)]
+        non_blank_count = sum(1 for r in range(rows) for c in range(cols) if not is_blank[r][c])
+        
+        # If no non-blank tiles, return True (trivially connected)
+        if non_blank_count == 0:
+            return True
+        
         adj = [[] for _ in range(n_cells)]
         def idx(r,c): return r*cols + c
         for r in range(rows):
             for c in range(cols):
+                if is_blank[r][c]:
+                    continue
                 sides = tuple(board[r][c]['sides'])
                 i = idx(r,c)
                 # down
-                if r+1 < rows:
+                if r+1 < rows and not is_blank[r+1][c]:
                     nb = tuple(board[r+1][c]['sides'])
                     if sides[2] != 0 and sides[2] == nb[0]:
                         adj[i].append(idx(r+1,c)); adj[idx(r+1,c)].append(i)
                 # right
-                if c+1 < cols:
+                if c+1 < cols and not is_blank[r][c+1]:
                     nb = tuple(board[r][c+1]['sides'])
                     if sides[1] != 0 and sides[1] == nb[3]:
                         adj[i].append(idx(r,c+1)); adj[idx(r,c+1)].append(i)
+        
+        # Find first non-blank tile to start BFS
+        start = None
+        for r in range(rows):
+            for c in range(cols):
+                if not is_blank[r][c]:
+                    start = idx(r,c)
+                    break
+            if start is not None:
+                break
+        
         # BFS
         from collections import deque
-        q = deque([0])
+        q = deque([start])
         vis = [False]*n_cells
-        vis[0] = True
+        vis[start] = True
         cnt = 1
         while q:
             u = q.popleft()
             for v in adj[u]:
                 if not vis[v]:
                     vis[v]=True; q.append(v); cnt+=1
-        return cnt == n_cells
+        return cnt == non_blank_count
 
     connected = []
     not_connected = []
@@ -122,27 +143,45 @@ def generate_text_summary():
 
     def is_single_connected(board, rows, cols):
         n_cells = rows*cols
+        is_blank = [[board[r][c]['id'].startswith('BLANK') for c in range(cols)] for r in range(rows)]
+        non_blank_count = sum(1 for r in range(rows) for c in range(cols) if not is_blank[r][c])
+        
+        if non_blank_count == 0:
+            return True
+        
         adj = [[] for _ in range(n_cells)]
         def idx(r,c): return r*cols + c
         for r in range(rows):
             for c in range(cols):
+                if is_blank[r][c]:
+                    continue
                 s = tuple(board[r][c]['sides'])
                 i = idx(r,c)
-                if r+1<rows:
+                if r+1<rows and not is_blank[r+1][c]:
                     nb = tuple(board[r+1][c]['sides'])
                     if s[2]!=0 and s[2]==nb[0]:
                         adj[i].append(idx(r+1,c)); adj[idx(r+1,c)].append(i)
-                if c+1<cols:
+                if c+1<cols and not is_blank[r][c+1]:
                     nb = tuple(board[r][c+1]['sides'])
                     if s[1]!=0 and s[1]==nb[3]:
                         adj[i].append(idx(r,c+1)); adj[idx(r,c+1)].append(i)
+        
+        start = None
+        for r in range(rows):
+            for c in range(cols):
+                if not is_blank[r][c]:
+                    start = idx(r,c)
+                    break
+            if start is not None:
+                break
+        
         from collections import deque
-        q=deque([0]); vis=[False]*n_cells; vis[0]=True; cnt=1
+        q=deque([start]); vis=[False]*n_cells; vis[start]=True; cnt=1
         while q:
             u=q.popleft()
             for v in adj[u]:
                 if not vis[v]: vis[v]=True; q.append(v); cnt+=1
-        return cnt==n_cells
+        return cnt==non_blank_count
 
     connected=[]; not_connected=[]
     for path in solutions:
