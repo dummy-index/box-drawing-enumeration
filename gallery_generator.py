@@ -1,8 +1,21 @@
 import json
 import glob
 import os
+import argparse
 
-def generate_gallery_html():
+def get_first_board_meta():
+    """Return rows, cols, blank_count from the first solution file (if any)."""
+    files = sorted(glob.glob('solution_*.json'))
+    if not files:
+        return 0, 0, 0
+    data = json.load(open(files[0], 'r', encoding='utf-8'))
+    rows = data['rows']
+    cols = data['cols']
+    board = data['board']
+    blank = sum(1 for r in range(rows) for c in range(cols) if board[r][c]['id'].startswith('BLANK'))
+    return rows, cols, blank
+
+def generate_gallery_html(set_key, tile_total):
     """Generate HTML gallery for all solutions, ordering single-connected first."""
     solutions = sorted(glob.glob('solution_*.json'))
 
@@ -70,12 +83,16 @@ def generate_gallery_html():
 
     ordered = connected + not_connected
 
+    # Determine board metadata from first solution
+    rows_meta, cols_meta, blank_meta = get_first_board_meta()
+    set_desc_map = {'jis': ('JIS X 0208 罫線素片', 32), 'cp437': ('Code Page 437 罫線素片', 40)}
+    set_desc, _ = set_desc_map.get(set_key, ('Unknown Set', 0))
     html = f"""<!DOCTYPE html>
-<html lang="ja">
+<html lang=\"ja\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JIS X 0208 罫線素片 10×4 盤面ギャラリー</title>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>{set_desc} {rows_meta}×{cols_meta} 盤面ギャラリー</title>
     <style>
         body {{ font-family: 'Courier New', monospace; margin: 20px; background-color: #f5f5f5; }}
         h1 {{ text-align: center; color: #333; }}
@@ -92,7 +109,7 @@ def generate_gallery_html():
     </style>
 </head>
 <body>
-    <h1>JIS X 0208 罫線素片 32 字 × 10×4 盤面（8 空白セル）</h1>
+    <h1>{set_desc} {tile_total} 字 × {rows_meta}×{cols_meta} 盤面（{blank_meta} 空白セル）</h1>
     <div class="info">
         <p>単結合な解（上）→ 単結合でない解（下）</p>
         <p>合計 {len(ordered)} 解（単結合: {len(connected)}, 非単結合: {len(not_connected)}）</p>
@@ -137,7 +154,7 @@ def generate_gallery_html():
     print(f"Generated gallery.html with {len(ordered)} solutions ({len(connected)} connected, {len(not_connected)} not)")
 
 
-def generate_text_summary():
+def generate_text_summary(set_key, tile_total):
     """Generate text summary, ordered by connectivity."""
     solutions = sorted(glob.glob('solution_*.json'))
 
@@ -194,7 +211,10 @@ def generate_text_summary():
     ordered = connected + not_connected
 
     with open('solutions_summary.txt','w',encoding='utf-8') as f:
-        f.write("JIS X 0208 罫線素片 32字 × 10×4 盤面（8空白セル）\n")
+        rows_meta, cols_meta, blank_meta = get_first_board_meta()
+        set_desc_map = {'jis': ('JIS X 0208 罫線素片', 32), 'cp437': ('Code Page 437 罫線素片', 40)}
+        set_desc, _ = set_desc_map.get(set_key, ('Unknown Set', 0))
+        f.write(f"{set_desc} {tile_total}字 × {rows_meta}×{cols_meta} 盤面（{blank_meta}空白セル）\n")
         f.write("単結合配置の全代表解（回転・反射・色置換を同一視、平行移動重複を除去）\n")
         f.write("="*60 + "\n\n")
         f.write(f"全解数: {len(ordered)} (単結合: {len(connected)}, 非単結合: {len(not_connected)})\n\n")
@@ -219,5 +239,10 @@ def generate_text_summary():
 
 
 if __name__ == '__main__':
-    generate_gallery_html()
-    generate_text_summary()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--set', choices=['jis','cp437'], default='jis', help='Tile set (jis or cp437)')
+    args = parser.parse_args()
+    set_desc_map = {'jis': ('JIS X 0208 罫線素片', 32), 'cp437': ('Code Page 437 罫線素片', 40)}
+    set_desc, tile_total = set_desc_map[args.set]
+    generate_gallery_html(args.set, tile_total)
+    generate_text_summary(args.set, tile_total)

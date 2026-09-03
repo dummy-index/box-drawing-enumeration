@@ -384,6 +384,23 @@ def main():
         tiles = DEFAULT_TILES
         print("Warning: using DEFAULT_TILES placeholder. Replace with actual tile set using --tiles file.")
 
+    # Auto‑add blank tiles if the provided set is smaller than the grid size.
+    required = args.rows * args.cols
+    if len(tiles) < required:
+        added = required - len(tiles)
+        remaining = added
+        # generate BLANK IDs avoiding clashes with existing IDs
+        existing_ids = {t.id for t in tiles}
+        blank_idx = 1
+        while remaining > 0:
+            bid = f"BLANK{blank_idx}"
+            if bid not in existing_ids:
+                tiles.append(Tile(bid, (0, 0, 0, 0)))
+                existing_ids.add(bid)
+                remaining -= 1
+            blank_idx += 1
+        print(f"Added {added} blank tile(s) to match grid size {args.rows}x{args.cols}.")
+
     if len(tiles) != args.rows * args.cols:
         print(f"Tile count ({len(tiles)}) != grid size ({args.rows}x{args.cols}={args.rows*args.cols}). Exiting.")
         sys.exit(1)
